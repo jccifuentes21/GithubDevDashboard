@@ -1,73 +1,48 @@
-# React + TypeScript + Vite
+# GitHub Dev Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A personal analytics dashboard for GitHub profiles. Enter any GitHub username and get a visual breakdown of their public repositories, language usage, and recent activity.
 
-Currently, two official plugins are available:
+## What it does
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Profile overview** — avatar, bio, follower count, and account stats
+- **Repository browser** — full repo list with search, sort by name/stars/last updated, and filter by source/forked/language
+- **Language breakdown** — aggregated language stats across all repos
+- **Activity graph** — push event history over the last 90 days
+- **Repo detail view** — per-repo language breakdown and recent events
+- **Persistent state** — last searched username and preferences survive refresh
+- **Rate limit awareness** — displays remaining API calls, handles 403s gracefully
+- **Dark/light mode**
 
-## React Compiler
+## Tech stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Concern | Tool |
+|---|---|
+| Framework | React 19 + Vite 8 |
+| Language | TypeScript (strict mode) |
+| Routing | React Router v7 |
+| Data fetching | TanStack Query v5 |
+| Global state | Zustand |
+| Styling | Tailwind CSS v4 |
+| Testing | Vitest + React Testing Library |
+| Data source | GitHub REST API (unauthenticated, rate limit aware) |
 
-## Expanding the ESLint configuration
+## Architecture decisions
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+**Client-side filtering** — all repo filtering and search runs client-side. GitHub's search API has a rate limit of 10 req/min unauthenticated, making it unsuitable for interactive filtering. Fetching all repos once and filtering in memory gives instant results with no extra API calls.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+**TanStack Query for server state** — user data, repos, languages, and events are cached by query key. Navigating back to a previously searched user is instant — no refetch until the cache goes stale.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+**Zustand for UI state** — sort order, active filters, language selection, and theme are persisted to localStorage. Username is also persisted so the last searched profile loads on refresh.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+**URL as state for active repo** — the selected repo lives in the URL (`/:username/:repo`), not in the store. This makes repo detail pages shareable and bookmarkable.
+
+## Getting started
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Data source
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+All data is fetched directly from the [GitHub REST API](https://docs.github.com/en/rest). No authentication required. Unauthenticated requests are limited to 60 per hour — the app displays remaining rate limit and handles exhaustion gracefully.

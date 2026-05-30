@@ -1,0 +1,3 @@
+@import "tailwindcss";
+
+/* This file will eventually be populated via a PostCSS plugin by tailwind which will sacn source files, find all utility classes I sed and generate css only for those. No more config needed during setup. */
